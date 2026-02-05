@@ -350,32 +350,6 @@ function draw() {
         ctx.roundRect(handlePos.x - hSize, handlePos.y - hSize, hSize * 2, hSize * 2, 8);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
-    } else if (hStyle === 'diamond') {
-        ctx.save();
-        ctx.translate(handlePos.x, handlePos.y);
-        ctx.rotate(Math.PI / 4);
-        ctx.rect(-hSize * 0.8, -hSize * 0.8, hSize * 1.6, hSize * 1.6);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
-        ctx.restore();
-    } else if (hStyle === 'hexagon') {
-        drawPoly(6, hSize);
-    } else if (hStyle === 'pentagon') {
-        drawPoly(5, hSize);
-    } else if (hStyle === 'triangle') {
-        drawPoly(3, hSize);
-    } else if (hStyle === 'cross') {
-        ctx.save();
-        ctx.translate(handlePos.x, handlePos.y);
-        ctx.rotate(Math.PI / 4);
-        const t = hSize * 0.6;
-        ctx.rect(-hSize, -t / 2, hSize * 2, t);
-        ctx.rect(-t / 2, -hSize, t, hSize * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
-        ctx.restore();
-    } else if (hStyle === 'star') {
-        drawStar(5, hSize, hSize * 0.5);
     } else if (hStyle === 'minimal') {
         const thickness = Math.max(2, hSize / 8);
         ctx.rect(handlePos.x - thickness / 2, handlePos.y - hSize, thickness, hSize * 2);
@@ -438,35 +412,6 @@ async function startGifExport() {
 function updateProgress(percent, text) {
     progressFill.style.width = `${percent}%`;
     progressText.textContent = `Generating GIF: ${percent}% - ${text}`;
-}
-
-function drawPoly(sides, radius) {
-    const angle = (Math.PI * 2) / sides;
-    ctx.beginPath();
-    for (let i = 0; i < sides; i++) {
-        const x = handlePos.x + radius * Math.cos(i * angle - Math.PI / 2);
-        const y = handlePos.y + radius * Math.sin(i * angle - Math.PI / 2);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-}
-
-function drawStar(points, outer, inner) {
-    const angle = Math.PI / points;
-    ctx.beginPath();
-    for (let i = 0; i < 2 * points; i++) {
-        const r = (i % 2 === 0) ? outer : inner;
-        const x = handlePos.x + r * Math.cos(i * angle - Math.PI / 2);
-        const y = handlePos.y + r * Math.sin(i * angle - Math.PI / 2);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
 }
 
 init();
