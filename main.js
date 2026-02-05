@@ -25,10 +25,10 @@ const labelTextColorCtrl = document.getElementById('label-text-color');
 const handleStyleCtrl = document.getElementById('handle-style');
 const labelBgOpacityCtrl = document.getElementById('label-bg-opacity');
 const labelBorderRadiusCtrl = document.getElementById('label-border-radius');
-const labelVPositionCtrl = document.getElementById('label-v-position');
 const dividerColorCtrl = document.getElementById('divider-color');
 const handleColorCtrl = document.getElementById('handle-color');
-const uiThemeCtrl = document.getElementById('ui-theme');
+const labelVPositionCtrl = document.getElementById('label-v-position');
+const dividerDesignPresetCtrl = document.getElementById('divider-design-preset');
 
 let imgA = null;
 let imgB = null;
@@ -47,11 +47,17 @@ function init() {
 }
 
 function setupEventListeners() {
-    [dividerPreset, dividerStyle, dividerWidth, handleSizeCtrl, labelFontSizeCtrl, labelFontFamilyCtrl, labelBgColorCtrl, labelTextColorCtrl, handleStyleCtrl, labelBgOpacityCtrl, labelBorderRadiusCtrl, labelVPositionCtrl, dividerColorCtrl, handleColorCtrl]
-        .forEach(el => el.addEventListener('input', () => draw()));
-    [dividerPreset, dividerStyle, labelFontFamilyCtrl, handleStyleCtrl, labelVPositionCtrl, uiThemeCtrl].forEach(el => el.addEventListener('change', () => {
-        if (el === uiThemeCtrl) {
-            document.body.setAttribute('data-theme', el.value);
+    [dividerPreset, dividerStyle, dividerWidth, handleSizeCtrl, labelFontSizeCtrl, labelFontFamilyCtrl, labelBgColorCtrl, labelTextColorCtrl, handleStyleCtrl, labelBgOpacityCtrl, labelBorderRadiusCtrl, labelVPositionCtrl, dividerColorCtrl, handleColorCtrl, dividerDesignPresetCtrl]
+        .forEach(el => el.addEventListener('input', () => {
+            if (el !== dividerDesignPresetCtrl) {
+                dividerDesignPresetCtrl.value = 'custom';
+            }
+            draw();
+        }));
+
+    [dividerPreset, dividerStyle, labelFontFamilyCtrl, handleStyleCtrl, labelVPositionCtrl, dividerDesignPresetCtrl].forEach(el => el.addEventListener('change', () => {
+        if (el === dividerDesignPresetCtrl) {
+            applyDesignPreset(el.value);
         }
         draw();
     }));
@@ -420,6 +426,43 @@ async function startGifExport() {
 function updateProgress(percent, text) {
     progressFill.style.width = `${percent}%`;
     progressText.textContent = `Generating GIF: ${percent}% - ${text}`;
+}
+
+function applyDesignPreset(presetName) {
+    if (presetName === 'custom') return;
+
+    const presets = {
+        'neon-pulse': {
+            style: 'neon', width: 4, lineCol: '#00ff88',
+            hStyle: 'ring', hSize: 35, hCol: '#00ff88'
+        },
+        'cyber-pink': {
+            style: 'neon', width: 5, lineCol: '#ff00ff',
+            hStyle: 'circle', hSize: 30, hCol: '#ff00ff'
+        },
+        'stealth-ghost': {
+            style: 'dashed', width: 2, lineCol: '#ffffff',
+            hStyle: 'minimal', hSize: 24, hCol: '#ffffff'
+        },
+        'classic-bold': {
+            style: 'minimal', width: 8, lineCol: '#ffffff',
+            hStyle: 'circle', hSize: 42, hCol: '#ffffff'
+        },
+        'industrial': {
+            style: 'minimal', width: 3, lineCol: '#ffbb00',
+            hStyle: 'square', hSize: 32, hCol: '#ffbb00'
+        }
+    };
+
+    const p = presets[presetName];
+    if (p) {
+        dividerStyle.value = p.style;
+        dividerWidth.value = p.width;
+        dividerColorCtrl.value = p.lineCol;
+        handleStyleCtrl.value = p.hStyle;
+        handleSizeCtrl.value = p.hSize;
+        handleColorCtrl.value = p.hCol;
+    }
 }
 
 init();
