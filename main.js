@@ -262,8 +262,28 @@ function draw() {
 
     // Final Correct Order:
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(imgB, 0, 0, canvas.width, canvas.height);
-    drawSideLabel('CMYK', canvas.width - 60, canvas.height / 2, 'right', false);
+
+    // Default: Image B is background, Image A is overlay
+    let bgImg = imgB;
+    let overlayImg = imgA;
+    let bgLabel = 'CMYK';
+    let overlayLabel = 'RGB';
+    let bgAlign = 'right';
+    let overlayAlign = 'left';
+
+    // In Spotlight/Diagonal, user expects the revealed part to be CMYK for color check
+    // or vice versa depending on logic. Let's fix the specific visual mismatch.
+    if (preset === 'spotlight' || preset === 'diagonal') {
+        bgImg = imgA;
+        overlayImg = imgB;
+        bgLabel = 'RGB';
+        overlayLabel = 'CMYK';
+        bgAlign = 'left';
+        overlayAlign = 'right';
+    }
+
+    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+    drawSideLabel(bgLabel, bgAlign === 'left' ? 60 : canvas.width - 60, canvas.height / 2, bgAlign, false);
 
     ctx.save();
     // Re-apply path
@@ -279,8 +299,8 @@ function draw() {
         ctx.arc(canvas.width * sliderPos, canvas.height / 2, Math.min(canvas.width, canvas.height) * 0.25, 0, Math.PI * 2);
     }
     ctx.clip();
-    ctx.drawImage(imgA, 0, 0, canvas.width, canvas.height);
-    drawSideLabel('RGB', 60, canvas.height / 2, 'left', false);
+    ctx.drawImage(overlayImg, 0, 0, canvas.width, canvas.height);
+    drawSideLabel(overlayLabel, overlayAlign === 'left' ? 60 : canvas.width - 60, canvas.height / 2, overlayAlign, false);
     ctx.restore();
 
     // --- STEP 3: Divider UI (Always on Top)
