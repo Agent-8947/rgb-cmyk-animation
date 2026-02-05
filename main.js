@@ -26,6 +26,8 @@ const handleStyleCtrl = document.getElementById('handle-style');
 const labelBgOpacityCtrl = document.getElementById('label-bg-opacity');
 const labelBorderRadiusCtrl = document.getElementById('label-border-radius');
 const labelVPositionCtrl = document.getElementById('label-v-position');
+const dividerColorCtrl = document.getElementById('divider-color');
+const handleColorCtrl = document.getElementById('handle-color');
 
 let imgA = null;
 let imgB = null;
@@ -44,7 +46,7 @@ function init() {
 }
 
 function setupEventListeners() {
-    [dividerPreset, dividerStyle, dividerWidth, handleSizeCtrl, labelFontSizeCtrl, labelFontFamilyCtrl, labelBgColorCtrl, labelTextColorCtrl, handleStyleCtrl, labelBgOpacityCtrl, labelBorderRadiusCtrl, labelVPositionCtrl]
+    [dividerPreset, dividerStyle, dividerWidth, handleSizeCtrl, labelFontSizeCtrl, labelFontFamilyCtrl, labelBgColorCtrl, labelTextColorCtrl, handleStyleCtrl, labelBgOpacityCtrl, labelBorderRadiusCtrl, labelVPositionCtrl, dividerColorCtrl, handleColorCtrl]
         .forEach(el => el.addEventListener('input', () => draw()));
     [dividerPreset, dividerStyle, labelFontFamilyCtrl, handleStyleCtrl, labelVPositionCtrl].forEach(el => el.addEventListener('change', () => draw()));
 
@@ -308,13 +310,14 @@ function draw() {
 
     // --- STEP 3: Divider UI (Always on Top)
     if (style !== 'none') {
+        const dColor = dividerColorCtrl.value;
         ctx.save();
         if (style === 'neon') {
             ctx.shadowBlur = width * 2;
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
-            ctx.strokeStyle = 'white';
+            ctx.shadowColor = dColor;
+            ctx.strokeStyle = dColor;
         } else if (style === 'minimal' || style === 'dashed') {
-            ctx.strokeStyle = 'white';
+            ctx.strokeStyle = dColor;
             if (style === 'dashed') ctx.setLineDash([10, 10]);
         }
         ctx.lineWidth = width;
@@ -338,22 +341,22 @@ function draw() {
 
     if (hStyle === 'circle') {
         ctx.arc(handlePos.x, handlePos.y, hSize, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = handleColorCtrl.value;
         ctx.fill();
     } else if (hStyle === 'ring') {
         ctx.arc(handlePos.x, handlePos.y, hSize, 0, Math.PI * 2);
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = handleColorCtrl.value;
         ctx.lineWidth = 4;
         ctx.stroke();
     } else if (hStyle === 'square') {
         ctx.roundRect(handlePos.x - hSize, handlePos.y - hSize, hSize * 2, hSize * 2, 8);
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = handleColorCtrl.value;
         ctx.fill();
     } else if (hStyle === 'minimal') {
         const thickness = Math.max(2, hSize / 8);
         ctx.rect(handlePos.x - thickness / 2, handlePos.y - hSize, thickness, hSize * 2);
         ctx.rect(handlePos.x - hSize, handlePos.y - thickness / 2, hSize * 2, thickness);
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = handleColorCtrl.value;
         ctx.fill();
     }
 

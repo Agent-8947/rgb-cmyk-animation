@@ -74,7 +74,7 @@
             <section class="controls glass">
                 <div class="control-group">
                     <label for="divider-preset">Split Type</label>
-                    <select id="divider-preset" class="select-input">
+                    <select id="divider-preset" class="select-input" title="Comparison Mode">
                         <option value="vertical">Vertical</option>
                         <option value="horizontal">Horizontal</option>
                         <option value="spotlight">Spotlight</option>
@@ -84,7 +84,7 @@
 
                 <div class="control-group">
                     <label for="divider-style">Line Design</label>
-                    <select id="divider-style" class="select-input">
+                    <select id="divider-style" class="select-input" title="Line Design">
                         <option value="neon">Neon Glow</option>
                         <option value="minimal">Minimal White</option>
                         <option value="dashed">Dashed Line</option>
@@ -105,13 +105,18 @@
                             <option value="minimal">Minimal</option>
                         </select>
                     </div>
+                    <div class="row row-mt">
+                        <input type="color" id="divider-color" value="#ffffff" class="color-picker" title="Line Color">
+                        <input type="color" id="handle-color" value="#ffffff" class="color-picker" title="Handle Color">
+                        <span class="text-dim">Colors</span>
+                    </div>
                 </div>
 
                 <div class="control-group">
                     <label for="label-font-size">Label Size & Font</label>
                     <div class="row">
                         <input type="range" id="label-font-size" min="12" max="64" step="1" value="24">
-                        <select id="label-font-family" class="select-input compact">
+                        <select id="label-font-family" class="select-input compact" title="Font Family">
                             <option value="Outfit">Outfit</option>
                             <option value="Inter">Inter</option>
                             <option value="Arial">Arial</option>

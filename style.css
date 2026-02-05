@@ -399,8 +399,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 input[type="color"] {
-    appearance: none;
     -webkit-appearance: none;
+    appearance: none;
     border: none;
     width: 100%;
     height: 48px;
@@ -507,4 +507,16 @@ footer {
     .control-group {
         justify-content: space-between;
     }
+}
+
+.row-mt {
+    margin-top: 1.2rem;
+}
+
+.text-dim {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 500;
 }
