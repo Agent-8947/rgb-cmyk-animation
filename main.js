@@ -23,6 +23,9 @@ const labelFontFamilyCtrl = document.getElementById('label-font-family');
 const labelBgColorCtrl = document.getElementById('label-bg-color');
 const labelTextColorCtrl = document.getElementById('label-text-color');
 const handleStyleCtrl = document.getElementById('handle-style');
+const labelBgOpacityCtrl = document.getElementById('label-bg-opacity');
+const labelCornerStyleCtrl = document.getElementById('label-corner-style');
+const labelVPositionCtrl = document.getElementById('label-v-position');
 
 let imgA = null;
 let imgB = null;
@@ -41,9 +44,9 @@ function init() {
 }
 
 function setupEventListeners() {
-    [dividerPreset, dividerStyle, dividerWidth, handleSizeCtrl, labelFontSizeCtrl, labelFontFamilyCtrl, labelBgColorCtrl, labelTextColorCtrl, handleStyleCtrl]
+    [dividerPreset, dividerStyle, dividerWidth, handleSizeCtrl, labelFontSizeCtrl, labelFontFamilyCtrl, labelBgColorCtrl, labelTextColorCtrl, handleStyleCtrl, labelBgOpacityCtrl, labelCornerStyleCtrl, labelVPositionCtrl]
         .forEach(el => el.addEventListener('input', () => draw()));
-    [dividerPreset, dividerStyle, labelFontFamilyCtrl, handleStyleCtrl].forEach(el => el.addEventListener('change', () => draw()));
+    [dividerPreset, dividerStyle, labelFontFamilyCtrl, handleStyleCtrl, labelCornerStyleCtrl, labelVPositionCtrl].forEach(el => el.addEventListener('change', () => draw()));
 
     [dropZoneA, dropZoneB].forEach((zone, index) => {
         const input = index === 0 ? inputA : inputB;
@@ -193,19 +196,17 @@ function draw() {
     const fFamily = labelFontFamilyCtrl.value;
     const bgColor = labelBgColorCtrl.value;
     const textColor = labelTextColorCtrl.value;
+    const bgOpacity = parseFloat(labelBgOpacityCtrl.value);
+    const cornerStyle = labelCornerStyleCtrl.value;
+    const vPos = labelVPositionCtrl.value;
 
-    const drawSideLabel = (text, x, y, align, isClippedPart) => {
+    const drawSideLabel = (text, x, y, align) => {
         ctx.save();
 
-        // This is the "Erase" logic:
-        // We only draw the part of the label that matches the side.
-        // We use the same path we just calculated.
-        if (isClippedPart) {
-            ctx.clip(); // Only draw where Image A is visible
-        } else {
-            // How to draw "rest of it"? We clip the INVERSE.
-            // Simplified: we just draw labels after Images.
-        }
+        // Vertical Positioning
+        let finalY = y;
+        if (vPos === 'top') finalY = 60;
+        else if (vPos === 'bottom') finalY = canvas.height - 60;
 
         ctx.font = `bold ${fSize}px ${fFamily}`;
         const metrics = ctx.measureText(text);
@@ -213,19 +214,23 @@ function draw() {
         const rectW = metrics.width + paddingH * 2;
         const rectH = fSize * 2;
         const rectX = align === 'right' ? x - rectW : x;
-        const rectY = y - rectH / 2;
+        const rectY = finalY - rectH / 2;
 
-        ctx.globalAlpha = 0.7;
+        ctx.globalAlpha = bgOpacity;
         ctx.fillStyle = bgColor;
         ctx.beginPath();
-        ctx.roundRect(rectX, rectY, rectW, rectH, fSize / 2);
+        if (cornerStyle === 'rounded') {
+            ctx.roundRect(rectX, rectY, rectW, rectH, fSize / 2);
+        } else {
+            ctx.rect(rectX, rectY, rectW, rectH);
+        }
         ctx.fill();
 
         ctx.globalAlpha = 1.0;
         ctx.fillStyle = textColor;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(text, rectX + rectW / 2, y);
+        ctx.fillText(text, rectX + rectW / 2, finalY);
         ctx.restore();
     };
 
@@ -285,7 +290,7 @@ function draw() {
     }
 
     ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-    drawSideLabel(bgLabel, bgAlign === 'left' ? 60 : canvas.width - 60, canvas.height / 2, bgAlign, false);
+    drawSideLabel(bgLabel, canvas.width - 60, canvas.height / 2, 'right');
 
     ctx.save();
     // Re-apply path
@@ -301,10 +306,8 @@ function draw() {
         ctx.arc(canvas.width * sliderPos, canvas.height / 2, Math.min(canvas.width, canvas.height) * 0.25, 0, Math.PI * 2);
     }
     ctx.clip();
-    // Draw Overlay Image
     ctx.drawImage(overlayImg, 0, 0, canvas.width, canvas.height);
-
-    drawSideLabel(overlayLabel, overlayAlign === 'left' ? 60 : canvas.width - 60, canvas.height / 2, overlayAlign, false);
+    drawSideLabel(overlayLabel, 60, canvas.height / 2, 'left');
     ctx.restore();
 
     // --- STEP 3: Divider UI (Always on Top)
