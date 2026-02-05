@@ -22,6 +22,7 @@ const labelFontSizeCtrl = document.getElementById('label-font-size');
 const labelFontFamilyCtrl = document.getElementById('label-font-family');
 const labelBgColorCtrl = document.getElementById('label-bg-color');
 const labelTextColorCtrl = document.getElementById('label-text-color');
+const handleStyleCtrl = document.getElementById('handle-style');
 
 let imgA = null;
 let imgB = null;
@@ -32,6 +33,7 @@ let animationPhase = 0;
 let lastTime = 0;
 let isExporting = false;
 let isDragging = false;
+let handlePos = { x: 0, y: 0 };
 
 function init() {
     setupEventListeners();
@@ -39,9 +41,9 @@ function init() {
 }
 
 function setupEventListeners() {
-    [dividerPreset, dividerStyle, dividerWidth, handleSizeCtrl, labelFontSizeCtrl, labelFontFamilyCtrl, labelBgColorCtrl, labelTextColorCtrl]
+    [dividerPreset, dividerStyle, dividerWidth, handleSizeCtrl, labelFontSizeCtrl, labelFontFamilyCtrl, labelBgColorCtrl, labelTextColorCtrl, handleStyleCtrl]
         .forEach(el => el.addEventListener('input', () => draw()));
-    [dividerPreset, dividerStyle, labelFontFamilyCtrl].forEach(el => el.addEventListener('change', () => draw()));
+    [dividerPreset, dividerStyle, labelFontFamilyCtrl, handleStyleCtrl].forEach(el => el.addEventListener('change', () => draw()));
 
     [dropZoneA, dropZoneB].forEach((zone, index) => {
         const input = index === 0 ? inputA : inputB;
@@ -148,7 +150,7 @@ function draw() {
     ctx.save();
     ctx.beginPath();
     let lineStart = { x: 0, y: 0 }, lineEnd = { x: 0, y: 0 };
-    let handlePos = { x: 0, y: 0 };
+    handlePos = { x: 0, y: 0 };
 
     if (preset === 'vertical') {
         const x = canvas.width * sliderPos;
@@ -299,7 +301,9 @@ function draw() {
         ctx.arc(canvas.width * sliderPos, canvas.height / 2, Math.min(canvas.width, canvas.height) * 0.25, 0, Math.PI * 2);
     }
     ctx.clip();
+    // Draw Overlay Image
     ctx.drawImage(overlayImg, 0, 0, canvas.width, canvas.height);
+
     drawSideLabel(overlayLabel, overlayAlign === 'left' ? 60 : canvas.width - 60, canvas.height / 2, overlayAlign, false);
     ctx.restore();
 
@@ -327,21 +331,70 @@ function draw() {
     }
 
     // Handle
+    const hStyle = handleStyleCtrl.value;
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(handlePos.x, handlePos.y, hSize, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
     ctx.shadowBlur = 20;
     ctx.shadowColor = 'rgba(0,0,0,0.3)';
-    // ctx.stroke(); // Removed outline/contour as requested
+    ctx.beginPath();
 
-    ctx.fillStyle = '#1a1a24';
-    ctx.font = `bold ${Math.round(hSize * 0.7)}px ${labelFontFamilyCtrl.value}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const arrow = (preset === 'horizontal') ? '▲▼' : '◄ ►';
-    ctx.fillText(arrow, handlePos.x, handlePos.y);
+    if (hStyle === 'circle') {
+        ctx.arc(handlePos.x, handlePos.y, hSize, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+    } else if (hStyle === 'ring') {
+        ctx.arc(handlePos.x, handlePos.y, hSize, 0, Math.PI * 2);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+    } else if (hStyle === 'square') {
+        ctx.roundRect(handlePos.x - hSize, handlePos.y - hSize, hSize * 2, hSize * 2, 8);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+    } else if (hStyle === 'diamond') {
+        ctx.save();
+        ctx.translate(handlePos.x, handlePos.y);
+        ctx.rotate(Math.PI / 4);
+        ctx.rect(-hSize * 0.8, -hSize * 0.8, hSize * 1.6, hSize * 1.6);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+    } else if (hStyle === 'hexagon') {
+        drawPoly(6, hSize);
+    } else if (hStyle === 'pentagon') {
+        drawPoly(5, hSize);
+    } else if (hStyle === 'triangle') {
+        drawPoly(3, hSize);
+    } else if (hStyle === 'cross') {
+        ctx.save();
+        ctx.translate(handlePos.x, handlePos.y);
+        ctx.rotate(Math.PI / 4);
+        const t = hSize * 0.6;
+        ctx.rect(-hSize, -t / 2, hSize * 2, t);
+        ctx.rect(-t / 2, -hSize, t, hSize * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+    } else if (hStyle === 'star') {
+        drawStar(5, hSize, hSize * 0.5);
+    } else if (hStyle === 'minimal') {
+        const thickness = Math.max(2, hSize / 8);
+        ctx.rect(handlePos.x - thickness / 2, handlePos.y - hSize, thickness, hSize * 2);
+        ctx.rect(handlePos.x - hSize, handlePos.y - thickness / 2, hSize * 2, thickness);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+    }
+
+    // Arrows/Text for non-minimal styles
+    if (hStyle !== 'minimal' && hStyle !== 'ring') {
+        ctx.shadowBlur = 0; // Don't shadow the text
+        ctx.fillStyle = '#1a1a24';
+        ctx.font = `bold ${Math.round(hSize * 0.7)}px ${labelFontFamilyCtrl.value}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const arrow = (preset === 'horizontal') ? '▲▼' : '◄ ►';
+        ctx.fillText(arrow, handlePos.x, handlePos.y);
+    }
+
     ctx.restore();
 }
 
@@ -385,6 +438,35 @@ async function startGifExport() {
 function updateProgress(percent, text) {
     progressFill.style.width = `${percent}%`;
     progressText.textContent = `Generating GIF: ${percent}% - ${text}`;
+}
+
+function drawPoly(sides, radius) {
+    const angle = (Math.PI * 2) / sides;
+    ctx.beginPath();
+    for (let i = 0; i < sides; i++) {
+        const x = handlePos.x + radius * Math.cos(i * angle - Math.PI / 2);
+        const y = handlePos.y + radius * Math.sin(i * angle - Math.PI / 2);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+}
+
+function drawStar(points, outer, inner) {
+    const angle = Math.PI / points;
+    ctx.beginPath();
+    for (let i = 0; i < 2 * points; i++) {
+        const r = (i % 2 === 0) ? outer : inner;
+        const x = handlePos.x + r * Math.cos(i * angle - Math.PI / 2);
+        const y = handlePos.y + r * Math.sin(i * angle - Math.PI / 2);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
 }
 
 init();
