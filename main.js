@@ -28,6 +28,7 @@ const labelBorderRadiusCtrl = document.getElementById('label-border-radius');
 const labelVPositionCtrl = document.getElementById('label-v-position');
 const dividerColorCtrl = document.getElementById('divider-color');
 const handleColorCtrl = document.getElementById('handle-color');
+const uiThemeCtrl = document.getElementById('ui-theme');
 
 let imgA = null;
 let imgB = null;
@@ -48,7 +49,12 @@ function init() {
 function setupEventListeners() {
     [dividerPreset, dividerStyle, dividerWidth, handleSizeCtrl, labelFontSizeCtrl, labelFontFamilyCtrl, labelBgColorCtrl, labelTextColorCtrl, handleStyleCtrl, labelBgOpacityCtrl, labelBorderRadiusCtrl, labelVPositionCtrl, dividerColorCtrl, handleColorCtrl]
         .forEach(el => el.addEventListener('input', () => draw()));
-    [dividerPreset, dividerStyle, labelFontFamilyCtrl, handleStyleCtrl, labelVPositionCtrl].forEach(el => el.addEventListener('change', () => draw()));
+    [dividerPreset, dividerStyle, labelFontFamilyCtrl, handleStyleCtrl, labelVPositionCtrl, uiThemeCtrl].forEach(el => el.addEventListener('change', () => {
+        if (el === uiThemeCtrl) {
+            document.body.setAttribute('data-theme', el.value);
+        }
+        draw();
+    }));
 
     [dropZoneA, dropZoneB].forEach((zone, index) => {
         const input = index === 0 ? inputA : inputB;
