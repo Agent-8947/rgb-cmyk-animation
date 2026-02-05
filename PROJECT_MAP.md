@@ -26,13 +26,14 @@ Single-page visual utility for comparing two images (RGB vs CMYK versions) with 
 
 ## 📋 Initial TODO List
 
-- [ ] Initialize Vite project
-- [ ] Setup modern CSS framework (Vanilla CSS with variables)
-- [ ] Implement Image Upload & Processing (scaling logic)
-- [ ] Develop Canvas Render Engine with Slider
-- [ ] Implement Auto-animation Controller
-- [ ] Integrate `gif.js` for export
-- [ ] Final UI/UX Polish
+- [x] Initialize Vite project
+- [x] Setup modern CSS framework (Vanilla CSS with variables)
+- [x] Implement Image Upload & Processing (scaling logic)
+- [x] Develop Canvas Render Engine with Slider
+- [x] Implement Auto-animation Controller
+- [x] Integrate `gif.js` for export
+- [x] Final UI/UX Polish (Hyper-Glass Design)
+- [x] Fix Vercel Deployment (Clean Repository Index)
 
 ---
 
