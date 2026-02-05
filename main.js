@@ -24,7 +24,7 @@ const labelBgColorCtrl = document.getElementById('label-bg-color');
 const labelTextColorCtrl = document.getElementById('label-text-color');
 const handleStyleCtrl = document.getElementById('handle-style');
 const labelBgOpacityCtrl = document.getElementById('label-bg-opacity');
-const labelCornerStyleCtrl = document.getElementById('label-corner-style');
+const labelBorderRadiusCtrl = document.getElementById('label-border-radius');
 const labelVPositionCtrl = document.getElementById('label-v-position');
 
 let imgA = null;
@@ -44,9 +44,9 @@ function init() {
 }
 
 function setupEventListeners() {
-    [dividerPreset, dividerStyle, dividerWidth, handleSizeCtrl, labelFontSizeCtrl, labelFontFamilyCtrl, labelBgColorCtrl, labelTextColorCtrl, handleStyleCtrl, labelBgOpacityCtrl, labelCornerStyleCtrl, labelVPositionCtrl]
+    [dividerPreset, dividerStyle, dividerWidth, handleSizeCtrl, labelFontSizeCtrl, labelFontFamilyCtrl, labelBgColorCtrl, labelTextColorCtrl, handleStyleCtrl, labelBgOpacityCtrl, labelBorderRadiusCtrl, labelVPositionCtrl]
         .forEach(el => el.addEventListener('input', () => draw()));
-    [dividerPreset, dividerStyle, labelFontFamilyCtrl, handleStyleCtrl, labelCornerStyleCtrl, labelVPositionCtrl].forEach(el => el.addEventListener('change', () => draw()));
+    [dividerPreset, dividerStyle, labelFontFamilyCtrl, handleStyleCtrl, labelVPositionCtrl].forEach(el => el.addEventListener('change', () => draw()));
 
     [dropZoneA, dropZoneB].forEach((zone, index) => {
         const input = index === 0 ? inputA : inputB;
@@ -197,7 +197,7 @@ function draw() {
     const bgColor = labelBgColorCtrl.value;
     const textColor = labelTextColorCtrl.value;
     const bgOpacity = parseFloat(labelBgOpacityCtrl.value);
-    const cornerStyle = labelCornerStyleCtrl.value;
+    const bRadius = parseInt(labelBorderRadiusCtrl.value);
     const vPos = labelVPositionCtrl.value;
 
     const drawSideLabel = (text, x, y, align) => {
@@ -219,11 +219,7 @@ function draw() {
         ctx.globalAlpha = bgOpacity;
         ctx.fillStyle = bgColor;
         ctx.beginPath();
-        if (cornerStyle === 'rounded') {
-            ctx.roundRect(rectX, rectY, rectW, rectH, fSize / 2);
-        } else {
-            ctx.rect(rectX, rectY, rectW, rectH);
-        }
+        ctx.roundRect(rectX, rectY, rectW, rectH, bRadius);
         ctx.fill();
 
         ctx.globalAlpha = 1.0;
