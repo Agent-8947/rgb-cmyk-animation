@@ -451,6 +451,10 @@ function applyDesignPreset(presetName) {
         'industrial': {
             style: 'minimal', width: 3, lineCol: '#ffbb00',
             hStyle: 'square', hSize: 32, hCol: '#ffbb00'
+        },
+        'pure-zen': {
+            style: 'dotted', width: 1, lineCol: '#ffffff',
+            hStyle: 'dot', hSize: 20, hCol: '#ffffff'
         }
     };
 
