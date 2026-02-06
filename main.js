@@ -1,4 +1,5 @@
 import GIF from 'gif.js';
+import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 
 const canvas = document.getElementById('main-canvas');
 const ctx = canvas.getContext('2d');
@@ -7,6 +8,7 @@ const inputB = document.getElementById('input-b');
 const dropZoneA = document.getElementById('drop-zone-a');
 const dropZoneB = document.getElementById('drop-zone-b');
 const exportBtn = document.getElementById('export-gif');
+const exportMp4Btn = document.getElementById('export-mp4');
 const progressContainer = document.getElementById('progress-container');
 const progressFill = document.getElementById('progress-fill');
 const progressText = document.getElementById('progress-text');
@@ -89,6 +91,7 @@ function setupEventListeners() {
     window.addEventListener('touchend', () => { isDragging = false; });
 
     exportBtn.addEventListener('click', startGifExport);
+    exportMp4Btn.addEventListener('click', startMp4Export);
 }
 
 function handleFile(file, index) {
@@ -108,6 +111,8 @@ function handleFile(file, index) {
             }
             if (imgA && imgB) {
                 exportBtn.disabled = false;
+                exportMp4Btn.disabled = !window.VideoEncoder;
+                if (!window.VideoEncoder) exportMp4Btn.title = "MP4 Export requires a modern browser (Chrome/Edge/Safari)";
                 emptyState.style.display = 'none';
             }
         };
@@ -445,8 +450,86 @@ async function startGifExport() {
 
 function updateProgress(percent, text) {
     progressFill.style.width = `${percent}%`;
-    progressText.textContent = `Generating GIF: ${percent}% - ${text}`;
+    progressText.textContent = `Exporting: ${percent}% - ${text}`;
 }
 
+
+async function startMp4Export() {
+    if (isExporting || !window.VideoEncoder) return;
+    isExporting = true;
+    exportMp4Btn.disabled = true;
+    exportBtn.disabled = true;
+    progressContainer.classList.remove('hidden');
+
+    // MP4/H.264 requirements: even dimensions
+    const width = canvas.width % 2 === 0 ? canvas.width : canvas.width - 1;
+    const height = canvas.height % 2 === 0 ? canvas.height : canvas.height - 1;
+
+    let muxer = new Muxer({
+        target: new ArrayBufferTarget(),
+        video: {
+            codec: 'avc',
+            width: width,
+            height: height
+        },
+        fastStart: 'in-memory'
+    });
+
+    let videoEncoder = new VideoEncoder({
+        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+        error: e => console.error(e)
+    });
+
+    videoEncoder.configure({
+        codec: 'avc1.42E01E', // Baseline profile
+        width: width,
+        height: height,
+        bitrate: 4_000_000, // 4 Mbps
+    });
+
+    const cycleSec = 2.0;
+    const fps = 30;
+    const totalFrames = fps * cycleSec * 2;
+    const frameDuration = 1 / fps;
+    const originalPhase = animationPhase;
+    isAnimating = false;
+
+    for (let i = 0; i <= totalFrames; i++) {
+        animationPhase = (i / totalFrames) * 2 - 0.5;
+        sliderPos = (Math.sin(animationPhase * Math.PI) + 1) / 2;
+        draw();
+
+        // Bitmap for encoder
+        const bitmap = await createImageBitmap(canvas, 0, 0, width, height);
+        videoEncoder.encode(bitmap, { keyFrame: i % 30 === 0 });
+        bitmap.close();
+
+        updateProgress(Math.round((i / totalFrames) * 90), 'Encoding video...');
+        // Small delay to keep UI responsive
+        if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+    }
+
+    await videoEncoder.flush();
+    muxer.finalize();
+
+    const { buffer } = muxer.target;
+    const blob = new Blob([buffer], { type: 'video/mp4' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `comparison_${Date.now()}.mp4`;
+    link.click();
+
+    updateProgress(100, 'Export complete!');
+    setTimeout(() => {
+        isExporting = false;
+        exportBtn.disabled = false;
+        exportMp4Btn.disabled = false;
+        progressContainer.classList.add('hidden');
+        animationPhase = originalPhase;
+        isAnimating = true;
+        draw();
+    }, 1000);
+}
 
 init();
