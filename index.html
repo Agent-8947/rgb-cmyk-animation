@@ -162,8 +162,19 @@
                 </div>
 
                 <div class="control-group">
-                    <label for="speed-range">Auto Speed</label>
-                    <input type="range" id="speed-range" min="0.5" max="5" step="0.1" value="2">
+                    <label for="speed-range">Animation Speed & Easing</label>
+                    <div class="row">
+                        <input type="range" id="speed-range" min="0.5" max="5" step="0.1" value="2.5" title="Speed">
+                        <select id="easing-type" class="select-input compact" title="Motion Style">
+                            <option value="smooth">Smooth</option>
+                            <option value="fast-slow">Fast → Slow</option>
+                            <option value="slow-fast">Slow → Fast</option>
+                        </select>
+                    </div>
+                    <div class="row row-mt">
+                        <input type="range" id="edge-pause" min="0" max="2" step="0.1" value="0.5" title="Edge Pause">
+                        <span class="text-dim">Pause at edges: <span id="pause-value">0.5</span>s</span>
+                    </div>
                 </div>
 
                 <div class="control-group">

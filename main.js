@@ -19,6 +19,9 @@ const dividerStyle = document.getElementById('divider-style');
 const dividerWidth = document.getElementById('divider-width');
 const handleSizeCtrl = document.getElementById('handle-size');
 const speedRange = document.getElementById('speed-range');
+const easingTypeCtrl = document.getElementById('easing-type');
+const edgePauseCtrl = document.getElementById('edge-pause');
+const pauseValueDisplay = document.getElementById('pause-value');
 
 const labelFontSizeCtrl = document.getElementById('label-font-size');
 const labelFontFamilyCtrl = document.getElementById('label-font-family');
@@ -92,6 +95,11 @@ function setupEventListeners() {
 
     exportBtn.addEventListener('click', startGifExport);
     exportMp4Btn.addEventListener('click', startMp4Export);
+
+    // Edge pause display update
+    edgePauseCtrl.addEventListener('input', () => {
+        pauseValueDisplay.textContent = edgePauseCtrl.value;
+    });
 }
 
 function handleFile(file, index) {
@@ -141,8 +149,70 @@ function renderLoop(time) {
 function updateAnimation(deltaTime) {
     if (isDragging) return;
     const speed = parseFloat(speedRange.value);
-    animationPhase += deltaTime / speed;
-    sliderPos = (Math.sin(animationPhase * Math.PI - Math.PI / 2) + 1) / 2;
+    const pauseDuration = parseFloat(edgePauseCtrl.value);
+
+    // Total cycle = movement + pause at each edge
+    // One direction takes 'speed' seconds, pause takes 'pauseDuration' each
+    const totalCycle = (speed + pauseDuration) * 2;
+
+    animationPhase += deltaTime;
+
+    // Get current position in cycle
+    sliderPos = getAnimatedPositionWithPause(animationPhase, speed, pauseDuration);
+}
+
+// Apply easing function
+function applyEasing(t, type) {
+    if (type === 'fast-slow') {
+        return 1 - (1 - t) * (1 - t);
+    }
+    if (type === 'slow-fast') {
+        return t * t;
+    }
+    // Smooth: ease-in-out
+    return t < 0.5
+        ? 2 * t * t
+        : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
+
+// Animation with pause at edges
+function getAnimatedPositionWithPause(time, speed, pauseDuration) {
+    const easingType = easingTypeCtrl.value;
+
+    // One full cycle: pause → move right → pause → move left
+    const halfCycle = speed + pauseDuration;
+    const fullCycle = halfCycle * 2;
+
+    const cycleTime = time % fullCycle;
+
+    let pos;
+
+    if (cycleTime < pauseDuration) {
+        // Pause at left edge (position 0)
+        pos = 0;
+    } else if (cycleTime < pauseDuration + speed) {
+        // Moving right (0 → 1)
+        const t = (cycleTime - pauseDuration) / speed;
+        pos = applyEasing(t, easingType);
+    } else if (cycleTime < pauseDuration * 2 + speed) {
+        // Pause at right edge (position 1)
+        pos = 1;
+    } else {
+        // Moving left (1 → 0)
+        const t = (cycleTime - pauseDuration * 2 - speed) / speed;
+        pos = 1 - applyEasing(t, easingType);
+    }
+
+    return pos;
+}
+
+// For export - includes pause
+function getSliderPosForExport(normalizedTime) {
+    const speed = parseFloat(speedRange.value);
+    const pauseDuration = parseFloat(edgePauseCtrl.value);
+    const fullCycle = (speed + pauseDuration) * 2;
+
+    return getAnimatedPositionWithPause(normalizedTime * fullCycle, speed, pauseDuration);
 }
 
 function draw() {
@@ -427,8 +497,7 @@ async function startGifExport() {
     const exportStartTime = performance.now();
 
     for (let i = 0; i <= totalFrames; i++) {
-        animationPhase = (i / totalFrames) * 2 - 0.5;
-        sliderPos = (Math.sin(animationPhase * Math.PI) + 1) / 2;
+        sliderPos = getSliderPosForExport(i / totalFrames);
         draw();
         gif.addFrame(ctx, { copy: true, delay: frameDelay });
 
@@ -483,14 +552,23 @@ async function startMp4Export() {
     const height = canvas.height % 2 === 0 ? canvas.height : canvas.height - 1;
 
     const config = {
-        codec: 'avc1.4d002a', // Main Profile, Level 4.2 - High compatibility
+        codec: 'avc1.640028', // High Profile, Level 4.0 - YouTube recommended
         width: width,
         height: height,
-        bitrate: 4_000_000,
+        bitrate: 8_000_000, // Higher bitrate for YouTube quality
+        hardwareAcceleration: 'prefer-hardware', // Use GPU if available
     };
 
     try {
-        const support = await VideoEncoder.isConfigSupported(config);
+        let support = await VideoEncoder.isConfigSupported(config);
+
+        // Fallback to Main Profile if High Profile not supported
+        if (!support.supported) {
+            console.warn('High Profile not supported, falling back to Main Profile');
+            config.codec = 'avc1.4d002a'; // Main Profile, Level 4.2
+            support = await VideoEncoder.isConfigSupported(config);
+        }
+
         if (!support.supported) {
             throw new Error("H.264 codec configuration not supported by this browser.");
         }
@@ -524,8 +602,7 @@ async function startMp4Export() {
         const exportStartTime = performance.now();
 
         for (let i = 0; i <= totalFrames; i++) {
-            animationPhase = (i / totalFrames) * 2 - 0.5;
-            sliderPos = (Math.sin(animationPhase * Math.PI) + 1) / 2;
+            sliderPos = getSliderPosForExport(i / totalFrames);
             draw();
 
             // Create VideoFrame with microsecond timestamp
