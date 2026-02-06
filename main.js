@@ -482,88 +482,106 @@ async function startMp4Export() {
     const width = canvas.width % 2 === 0 ? canvas.width : canvas.width - 1;
     const height = canvas.height % 2 === 0 ? canvas.height : canvas.height - 1;
 
-    let muxer = new Muxer({
-        target: new ArrayBufferTarget(),
-        video: {
-            codec: 'avc',
-            width: width,
-            height: height
-        },
-        fastStart: 'in-memory'
-    });
-
-    let videoEncoder = new VideoEncoder({
-        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-        error: e => console.error(e)
-    });
-
-    videoEncoder.configure({
-        codec: 'avc1.42E01E', // Baseline profile
+    const config = {
+        codec: 'avc1.4d002a', // Main Profile, Level 4.2 - High compatibility
         width: width,
         height: height,
-        bitrate: 4_000_000, // 4 Mbps
-    });
+        bitrate: 4_000_000,
+    };
 
-    const cycleSec = 2.0;
-    const fps = 30;
-    const totalFrames = fps * cycleSec * 2;
-    const originalPhase = animationPhase;
-    isAnimating = false;
-
-    const exportStartTime = performance.now();
-
-    for (let i = 0; i <= totalFrames; i++) {
-        animationPhase = (i / totalFrames) * 2 - 0.5;
-        sliderPos = (Math.sin(animationPhase * Math.PI) + 1) / 2;
-        draw();
-
-        // Bitmap for encoder
-        const bitmap = await createImageBitmap(canvas, 0, 0, width, height);
-        videoEncoder.encode(bitmap, { keyFrame: i % 30 === 0 });
-        bitmap.close();
-
-        // Calculate time remaining
-        const elapsed = (performance.now() - exportStartTime) / 1000;
-        const progress = i / totalFrames;
-        let timeRemainingStr = '';
-
-        if (progress > 0.05) { // Wait for a stable estimate
-            const estimatedTotalTime = elapsed / progress;
-            const remaining = Math.max(0, estimatedTotalTime - elapsed);
-            timeRemainingStr = ` | ~${remaining.toFixed(1)}s left`;
+    try {
+        const support = await VideoEncoder.isConfigSupported(config);
+        if (!support.supported) {
+            throw new Error("H.264 codec configuration not supported by this browser.");
         }
 
-        updateProgress(
-            Math.round(progress * 90),
-            `H.264: Encoding (Frame ${i}/${totalFrames})${timeRemainingStr}`
-        );
+        let muxer = new Muxer({
+            target: new ArrayBufferTarget(),
+            video: {
+                codec: 'avc',
+                width: width,
+                height: height
+            },
+            fastStart: 'in-memory'
+        });
 
-        // UI responsiveness
-        if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
-    }
+        let videoEncoder = new VideoEncoder({
+            output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+            error: e => {
+                updateProgress(0, `Encoder Error: ${e.message}`);
+                console.error(e);
+            }
+        });
 
-    updateProgress(95, 'H.264: Finalizing container...');
-    await videoEncoder.flush();
-    muxer.finalize();
+        videoEncoder.configure(config);
 
-    const { buffer } = muxer.target;
-    const blob = new Blob([buffer], { type: 'video/mp4' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `comparison_${Date.now()}.mp4`;
-    link.click();
+        const cycleSec = 2.0;
+        const fps = 30;
+        const totalFrames = fps * cycleSec * 2;
+        const originalPhase = animationPhase;
+        isAnimating = false;
 
-    updateProgress(100, 'Export complete!');
-    setTimeout(() => {
+        const exportStartTime = performance.now();
+
+        for (let i = 0; i <= totalFrames; i++) {
+            animationPhase = (i / totalFrames) * 2 - 0.5;
+            sliderPos = (Math.sin(animationPhase * Math.PI) + 1) / 2;
+            draw();
+
+            // Bitmap for encoder
+            const bitmap = await createImageBitmap(canvas, 0, 0, width, height);
+            videoEncoder.encode(bitmap, { keyFrame: i % 30 === 0 });
+            bitmap.close();
+
+            // Calculate time remaining
+            const elapsed = (performance.now() - exportStartTime) / 1000;
+            const progress = i / totalFrames;
+            let timeRemainingStr = '';
+
+            if (progress > 0.05) { // Wait for a stable estimate
+                const estimatedTotalTime = elapsed / progress;
+                const remaining = Math.max(0, estimatedTotalTime - elapsed);
+                timeRemainingStr = ` | ~${remaining.toFixed(1)}s left`;
+            }
+
+            updateProgress(
+                Math.round(progress * 90),
+                `H.264: Encoding (Frame ${i}/${totalFrames})${timeRemainingStr}`
+            );
+
+            // UI responsiveness
+            if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+        }
+
+        updateProgress(95, 'H.264: Finalizing container...');
+        await videoEncoder.flush();
+        muxer.finalize();
+
+        const { buffer } = muxer.target;
+        const blob = new Blob([buffer], { type: 'video/mp4' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `comparison_${Date.now()}.mp4`;
+        link.click();
+
+        updateProgress(100, 'Export complete!');
+        setTimeout(() => {
+            isExporting = false;
+            exportBtn.disabled = false;
+            exportMp4Btn.disabled = false;
+            progressContainer.classList.add('hidden');
+            animationPhase = originalPhase;
+            isAnimating = true;
+            draw();
+        }, 1000);
+    } catch (err) {
+        updateProgress(0, `Export Failed: ${err.message}`);
+        console.error("MP4 Export Error:", err);
         isExporting = false;
         exportBtn.disabled = false;
         exportMp4Btn.disabled = false;
-        progressContainer.classList.add('hidden');
-        animationPhase = originalPhase;
-        isAnimating = true;
-        draw();
-    }, 1000);
+    }
 }
 
 init();
