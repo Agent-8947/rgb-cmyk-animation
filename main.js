@@ -415,24 +415,40 @@ async function startGifExport() {
     if (isExporting) return;
     isExporting = true;
     exportBtn.disabled = true;
+    exportMp4Btn.disabled = true;
     progressContainer.classList.remove('hidden');
+    updateProgress(0, 'Initializing GIF Engine...');
     const gif = new GIF({ workers: 2, quality: 10, workerScript: '/gif.worker.js', width: canvas.width, height: canvas.height });
     const cycleSec = 2.0;
     const fps = 20;
     const totalFrames = fps * cycleSec * 2;
     const frameDelay = (cycleSec * 2 * 1000) / totalFrames;
     const originalPhase = animationPhase;
-    isAnimating = false;
+    const exportStartTime = performance.now();
+
     for (let i = 0; i <= totalFrames; i++) {
         animationPhase = (i / totalFrames) * 2 - 0.5;
         sliderPos = (Math.sin(animationPhase * Math.PI) + 1) / 2;
         draw();
         gif.addFrame(ctx, { copy: true, delay: frameDelay });
-        updateProgress(Math.round((i / totalFrames) * 50), 'Capturing frames...');
+
+        // Time remaining estimate for capture phase
+        const elapsed = (performance.now() - exportStartTime) / 1000;
+        const progress = i / totalFrames;
+        let timeRemainingStr = '';
+        if (progress > 0.1) {
+            const remaining = (elapsed / progress) - elapsed;
+            timeRemainingStr = ` | ~${remaining.toFixed(1)}s left`;
+        }
+
+        updateProgress(
+            Math.round(progress * 50),
+            `GIF: Capturing frames (${i}/${totalFrames})${timeRemainingStr}`
+        );
         await new Promise(r => setTimeout(r, 10));
     }
-    updateProgress(60, 'Rendering...');
-    gif.on('progress', (p) => updateProgress(60 + Math.round(p * 40), 'Processing...'));
+    updateProgress(50, 'GIF: Starting render...');
+    gif.on('progress', (p) => updateProgress(50 + Math.round(p * 50), 'GIF: Processing images...'));
     gif.on('finished', (blob) => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -450,7 +466,7 @@ async function startGifExport() {
 
 function updateProgress(percent, text) {
     progressFill.style.width = `${percent}%`;
-    progressText.textContent = `Exporting: ${percent}% - ${text}`;
+    progressText.textContent = `Progress: ${percent}% | ${text}`;
 }
 
 
@@ -460,6 +476,7 @@ async function startMp4Export() {
     exportMp4Btn.disabled = true;
     exportBtn.disabled = true;
     progressContainer.classList.remove('hidden');
+    updateProgress(0, 'Initializing H.264 Encoder...');
 
     // MP4/H.264 requirements: even dimensions
     const width = canvas.width % 2 === 0 ? canvas.width : canvas.width - 1;
@@ -518,14 +535,14 @@ async function startMp4Export() {
 
         updateProgress(
             Math.round(progress * 90),
-            `Encoding H.264 (Frame ${i}/${totalFrames})${timeRemainingStr}`
+            `H.264: Encoding (Frame ${i}/${totalFrames})${timeRemainingStr}`
         );
 
         // UI responsiveness
         if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
     }
 
-    updateProgress(95, 'Finalizing container...');
+    updateProgress(95, 'H.264: Finalizing container...');
     await videoEncoder.flush();
     muxer.finalize();
 
