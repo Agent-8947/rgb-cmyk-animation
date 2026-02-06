@@ -490,9 +490,10 @@ async function startMp4Export() {
     const cycleSec = 2.0;
     const fps = 30;
     const totalFrames = fps * cycleSec * 2;
-    const frameDuration = 1 / fps;
     const originalPhase = animationPhase;
     isAnimating = false;
+
+    const exportStartTime = performance.now();
 
     for (let i = 0; i <= totalFrames; i++) {
         animationPhase = (i / totalFrames) * 2 - 0.5;
@@ -504,11 +505,27 @@ async function startMp4Export() {
         videoEncoder.encode(bitmap, { keyFrame: i % 30 === 0 });
         bitmap.close();
 
-        updateProgress(Math.round((i / totalFrames) * 90), 'Encoding video...');
-        // Small delay to keep UI responsive
+        // Calculate time remaining
+        const elapsed = (performance.now() - exportStartTime) / 1000;
+        const progress = i / totalFrames;
+        let timeRemainingStr = '';
+
+        if (progress > 0.05) { // Wait for a stable estimate
+            const estimatedTotalTime = elapsed / progress;
+            const remaining = Math.max(0, estimatedTotalTime - elapsed);
+            timeRemainingStr = ` | ~${remaining.toFixed(1)}s left`;
+        }
+
+        updateProgress(
+            Math.round(progress * 90),
+            `Encoding H.264 (Frame ${i}/${totalFrames})${timeRemainingStr}`
+        );
+
+        // UI responsiveness
         if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
     }
 
+    updateProgress(95, 'Finalizing container...');
     await videoEncoder.flush();
     muxer.finalize();
 
