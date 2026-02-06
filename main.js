@@ -328,20 +328,33 @@ function draw() {
             ctx.shadowBlur = width * 2;
             ctx.shadowColor = dColor;
             ctx.strokeStyle = dColor;
-        } else if (style === 'minimal' || style === 'dashed') {
+        } else if (style === 'minimal' || style === 'dashed' || style === 'dotted' || style === 'double') {
             ctx.strokeStyle = dColor;
             if (style === 'dashed') ctx.setLineDash([10, 10]);
+            if (style === 'dotted') ctx.setLineDash([3, 6]);
         }
         ctx.lineWidth = width;
         ctx.beginPath();
         if (preset === 'spotlight') {
             ctx.arc(handlePos.x, handlePos.y, Math.min(canvas.width, canvas.height) * 0.25, 0, Math.PI * 2);
+            ctx.stroke();
         } else {
-            ctx.moveTo(lineStart.x, lineStart.y);
-            ctx.lineTo(lineEnd.x, lineEnd.y);
+            if (style === 'double') {
+                const offset = width * 1.5;
+                const angle = Math.atan2(lineEnd.y - lineStart.y, lineEnd.x - lineStart.x);
+                const dx = Math.sin(angle) * offset;
+                const dy = -Math.cos(angle) * offset;
+
+                ctx.moveTo(lineStart.x - dx, lineStart.y - dy); ctx.lineTo(lineEnd.x - dx, lineEnd.y - dy);
+                ctx.moveTo(lineStart.x + dx, lineStart.y + dy); ctx.lineTo(lineEnd.x + dx, lineEnd.y + dy);
+            } else {
+                ctx.moveTo(lineStart.x, lineStart.y);
+                ctx.lineTo(lineEnd.x, lineEnd.y);
+            }
+            ctx.stroke();
         }
-        ctx.stroke();
         ctx.restore();
+        return; // Skip the generic drawing below
     }
 
     // Handle
@@ -370,12 +383,31 @@ function draw() {
         ctx.rect(handlePos.x - hSize, handlePos.y - thickness / 2, hSize * 2, thickness);
         ctx.fillStyle = handleColorCtrl.value;
         ctx.fill();
+    } else if (hStyle === 'dot') {
+        ctx.arc(handlePos.x, handlePos.y, hSize * 0.35, 0, Math.PI * 2);
+        ctx.fillStyle = handleColorCtrl.value;
+        ctx.fill();
+    } else if (hStyle === 'pill') {
+        const rx = preset === 'horizontal' ? hSize * 1.5 : hSize * 0.5;
+        const ry = preset === 'horizontal' ? hSize * 0.5 : hSize * 1.5;
+        ctx.roundRect(handlePos.x - rx, handlePos.y - ry, rx * 2, ry * 2, Math.min(rx, ry));
+        ctx.fillStyle = handleColorCtrl.value;
+        ctx.fill();
+    } else if (hStyle === 'brackets') {
+        const bWidth = hSize * 0.8;
+        const bHeight = hSize * 1.2;
+        const bThick = Math.max(2, hSize / 6);
+        ctx.rect(handlePos.x - bWidth, handlePos.y - bHeight / 2, bThick, bHeight);
+        ctx.rect(handlePos.x + bWidth - bThick, handlePos.y - bHeight / 2, bThick, bHeight);
+        ctx.fillStyle = handleColorCtrl.value;
+        ctx.fill();
     }
 
     // Arrows/Text for non-minimal styles
     if (hStyle !== 'minimal' && hStyle !== 'ring') {
         ctx.shadowBlur = 0; // Don't shadow the text
-        ctx.fillStyle = '#1a1a24';
+        // Use handle color for 'arrows' style, dark color otherwise
+        ctx.fillStyle = (hStyle === 'arrows' || hStyle === 'brackets') ? handleColorCtrl.value : '#1a1a24';
         ctx.font = `bold ${Math.round(hSize * 0.7)}px ${labelFontFamilyCtrl.value}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -454,7 +486,7 @@ function applyDesignPreset(presetName) {
         },
         'pure-zen': {
             style: 'dotted', width: 1, lineCol: '#ffffff',
-            hStyle: 'dot', hSize: 20, hCol: '#ffffff'
+            hStyle: 'arrows', hSize: 32, hCol: '#ffffff'
         }
     };
 
