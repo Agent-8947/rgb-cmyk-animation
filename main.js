@@ -528,9 +528,11 @@ async function startMp4Export() {
             sliderPos = (Math.sin(animationPhase * Math.PI) + 1) / 2;
             draw();
 
-            // Bitmap for encoder
+            // Create VideoFrame with microsecond timestamp
             const bitmap = await createImageBitmap(canvas, 0, 0, width, height);
-            videoEncoder.encode(bitmap, { keyFrame: i % 30 === 0 });
+            const frame = new VideoFrame(bitmap, { timestamp: (i * 1000000) / fps });
+            videoEncoder.encode(frame, { keyFrame: i % 30 === 0 });
+            frame.close();
             bitmap.close();
 
             // Calculate time remaining
